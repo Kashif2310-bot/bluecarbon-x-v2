@@ -8,6 +8,7 @@ node_modules/
 
 # Production
 /build
+/dist
 
 # Misc
 .DS_Store
@@ -35,3 +36,9 @@ Thumbs.db
 ai-agent/venv/
 __pycache__/
 *.pyc
+
+# Firebase
+.firebase/
+.firebaserc
+
+.vercel

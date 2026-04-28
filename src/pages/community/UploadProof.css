@@ -22,6 +22,13 @@
   gap: var(--space-md);
 }
 
+/* Right column stacks media + Gemini analysis */
+.upload-form__right-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
 .upload-dropzone {
   border: 2px dashed rgba(0, 229, 155, 0.2);
   border-radius: var(--radius-lg);

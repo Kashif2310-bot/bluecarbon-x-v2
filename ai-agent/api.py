@@ -1,10 +1,12 @@
 """
 BlueCarbonX AI Agent — FastAPI Server
 Wraps CrewAI agents (Carbon Analyst + Fraud Detector) behind a REST API.
+Now also includes Google Gemini image analysis endpoint.
 """
 
 import os
 import re
+import base64
 import traceback
 
 # Load .env file if present
@@ -14,15 +16,15 @@ try:
 except ImportError:
     pass
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 # ─── App Setup ───────────────────────────────────────────────
 app = FastAPI(
     title="BlueCarbonX AI Agent",
-    description="Carbon credit analysis and fraud detection powered by CrewAI",
-    version="1.0.0",
+    description="Carbon credit analysis and fraud detection powered by CrewAI + Google Gemini",
+    version="2.0.0",
 )
 
 app.add_middleware(
@@ -43,9 +45,18 @@ class AnalyzeResponse(BaseModel):
     trust_score: int
     raw: str
 
-# ─── Check if GROQ key is available ─────────────────────────
+class GeminiImageResponse(BaseModel):
+    vegetationLevel: str
+    insight: str
+    confidence: str
+    status: str
+
+# ─── Check if API keys are available ────────────────────────
 def has_groq_key():
     return bool(os.environ.get("GROQ_API_KEY"))
+
+def has_gemini_key():
+    return bool(os.environ.get("GOOGLE_GEMINI_API_KEY"))
 
 # ─── Extract Trust Score from text ────────────────────────────
 def extract_trust_score(text: str) -> int:
@@ -150,6 +161,7 @@ async def health_check():
         "status": "ok",
         "service": "BlueCarbonX AI Agent",
         "mode": "live" if has_groq_key() else "demo",
+        "gemini": "available" if has_gemini_key() else "not configured",
     }
 
 @app.post("/analyze", response_model=AnalyzeResponse)
@@ -257,10 +269,81 @@ async def analyze_project(request: AnalyzeRequest):
         )
 
 
+# ─── Gemini Image Analysis Endpoint ──────────────────────────
+@app.post("/analyze-image", response_model=GeminiImageResponse)
+async def analyze_image(file: UploadFile = File(...)):
+    """Analyze an uploaded image using Google Gemini for vegetation presence."""
+    if not has_gemini_key():
+        raise HTTPException(
+            status_code=503,
+            detail="GOOGLE_GEMINI_API_KEY not set. Configure it in .env to use Gemini image analysis.",
+        )
+
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Uploaded file must be an image.")
+
+    try:
+        import google.generativeai as genai
+
+        genai.configure(api_key=os.environ.get("GOOGLE_GEMINI_API_KEY"))
+        model = genai.GenerativeModel("gemini-2.0-flash")
+
+        image_data = await file.read()
+        image_b64 = base64.b64encode(image_data).decode("utf-8")
+
+        prompt = """You are an environmental analysis AI for a blue carbon restoration platform.
+
+Analyze this image and respond ONLY in the following JSON format (no markdown, no code fences, just raw JSON):
+
+{
+  "vegetationLevel": "<low | medium | high>",
+  "insight": "<1-2 sentence explanation of what you observe regarding vegetation, ecosystem health, or environmental condition>",
+  "confidence": "<1 sentence reasoning about your confidence in this assessment>",
+  "status": "<Verified | Needs Review>"
+}
+
+Rules:
+- "vegetationLevel": Assess the density and health of visible vegetation. "low" = sparse/barren, "medium" = moderate coverage, "high" = dense/lush vegetation.
+- "insight": Be specific about what you see. Mention plant types if identifiable (mangroves, seagrass, wetland vegetation, etc.).
+- "confidence": Explain briefly why you are confident or uncertain.
+- "status": Set to "Verified" if vegetation is clearly present and identifiable. Set to "Needs Review" if the image is ambiguous, low quality, or shows minimal vegetation.
+
+Respond with valid JSON only."""
+
+        response = model.generate_content([
+            prompt,
+            {"mime_type": file.content_type, "data": image_b64},
+        ])
+
+        text = response.text.strip()
+        # Clean potential markdown code fences
+        cleaned = re.sub(r"```json\s*", "", text)
+        cleaned = re.sub(r"```\s*", "", cleaned).strip()
+
+        import json
+        parsed = json.loads(cleaned)
+
+        return GeminiImageResponse(
+            vegetationLevel=parsed.get("vegetationLevel", "medium"),
+            insight=parsed.get("insight", "Analysis completed."),
+            confidence=parsed.get("confidence", "Assessment based on visual analysis."),
+            status=parsed.get("status", "Needs Review"),
+        )
+
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Gemini image analysis failed: {str(e)}",
+        )
+
+
 if __name__ == "__main__":
     import uvicorn
     mode = "LIVE (Groq)" if has_groq_key() else "DEMO (no GROQ_API_KEY)"
+    gemini = "✅ Gemini Available" if has_gemini_key() else "❌ Gemini Not Configured"
     print(f"\n🚀 BlueCarbonX AI Agent starting in {mode} mode")
+    print(f"   Gemini: {gemini}")
     print(f"   Server: http://localhost:8000")
     print(f"   Docs:   http://localhost:8000/docs\n")
     uvicorn.run("api:app", host="0.0.0.0", port=8000, reload=True)

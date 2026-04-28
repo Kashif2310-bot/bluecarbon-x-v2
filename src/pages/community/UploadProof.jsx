@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useApp } from '../../context/AppContext'
 import GlassCard from '../../components/shared/GlassCard'
+import GeminiAnalysis from '../../components/shared/GeminiAnalysis'
+import { analyzeImageWithGemini } from '../../ai/geminiService'
+import { hasGeminiKey } from '../../config/env'
 import './UploadProof.css'
 
 export default function UploadProof() {
@@ -10,6 +13,11 @@ export default function UploadProof() {
   const { addProject } = useApp()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [dragActive, setDragActive] = useState(false)
+
+  // Gemini AI analysis state
+  const [geminiResult, setGeminiResult] = useState(null)
+  const [geminiLoading, setGeminiLoading] = useState(false)
+  const [geminiError, setGeminiError] = useState(null)
 
   const [form, setForm] = useState({
     name: '', description: '', location: '',
@@ -20,16 +28,55 @@ export default function UploadProof() {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
+  /**
+   * Trigger Gemini analysis when a new image is added.
+   * Only analyzes the first image (primary evidence).
+   */
+  const triggerGeminiAnalysis = async (imageFile) => {
+    if (!hasGeminiKey()) {
+      setGeminiError('Gemini API key not configured. Set VITE_GEMINI_API_KEY in .env')
+      return
+    }
+
+    setGeminiLoading(true)
+    setGeminiError(null)
+    setGeminiResult(null)
+
+    try {
+      const result = await analyzeImageWithGemini(imageFile)
+      setGeminiResult(result)
+    } catch (err) {
+      console.error('Gemini analysis failed:', err)
+      setGeminiError(err.message || 'AI analysis failed. Please try again.')
+    } finally {
+      setGeminiLoading(false)
+    }
+  }
+
   const handleDrop = (e) => {
     e.preventDefault()
     setDragActive(false)
     const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'))
-    if (files.length) setForm(prev => ({ ...prev, images: [...prev.images, ...files].slice(0, 5) }))
+    if (files.length) {
+      const newImages = [...form.images, ...files].slice(0, 5)
+      setForm(prev => ({ ...prev, images: newImages }))
+      // Analyze the first new image if no analysis exists yet
+      if (!geminiResult && !geminiLoading) {
+        triggerGeminiAnalysis(files[0])
+      }
+    }
   }
 
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files).filter(f => f.type.startsWith('image/'))
-    setForm(prev => ({ ...prev, images: [...prev.images, ...files].slice(0, 5) }))
+    if (files.length) {
+      const newImages = [...form.images, ...files].slice(0, 5)
+      setForm(prev => ({ ...prev, images: newImages }))
+      // Analyze the first new image if no analysis exists yet
+      if (!geminiResult && !geminiLoading) {
+        triggerGeminiAnalysis(files[0])
+      }
+    }
   }
 
   const handleVideoSelect = (e) => {
@@ -38,7 +85,13 @@ export default function UploadProof() {
   }
 
   const removeImage = (idx) => {
-    setForm(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== idx) }))
+    const newImages = form.images.filter((_, i) => i !== idx)
+    setForm(prev => ({ ...prev, images: newImages }))
+    // Clear analysis if all images removed
+    if (newImages.length === 0) {
+      setGeminiResult(null)
+      setGeminiError(null)
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -48,6 +101,13 @@ export default function UploadProof() {
 
     setIsSubmitting(true)
     await new Promise(r => setTimeout(r, 1500))
+
+    // Use Gemini results if available, otherwise fall back to random values
+    const vegetationScore = geminiResult
+      ? (geminiResult.vegetationLevel === 'high' ? (Math.random() * 10 + 85).toFixed(1) :
+         geminiResult.vegetationLevel === 'medium' ? (Math.random() * 20 + 50).toFixed(1) :
+         (Math.random() * 20 + 15).toFixed(1))
+      : (Math.random() * 30 + 65).toFixed(1)
 
     const projectId = addProject({
       name: form.name,
@@ -62,14 +122,15 @@ export default function UploadProof() {
       images: form.images.map(f => f.name),
       videoFile: form.video?.name || null,
       analysis: {
-        vegetationScore: (Math.random() * 30 + 65).toFixed(1),
+        vegetationScore: vegetationScore,
         biomassDetected: (Math.random() * 40 + 15).toFixed(1),
         carbonRestored: Math.floor(Math.random() * 180 + 100),
         confidence: (Math.random() * 10 + 82).toFixed(1),
-        hasVegetation: true,
+        hasVegetation: geminiResult ? geminiResult.vegetationLevel !== 'low' : true,
         speciesDetected: ['Rhizophora sp.', 'Avicennia sp.'],
         healthIndex: (Math.random() * 0.25 + 0.7).toFixed(2),
       },
+      geminiAnalysis: geminiResult || null,
       afterImage: { name: form.images[0]?.name, size: form.images[0]?.size },
     })
 
@@ -119,44 +180,59 @@ export default function UploadProof() {
             </div>
           </GlassCard>
 
-          {/* Right: Media upload */}
-          <GlassCard delay={0.2} className="upload-form__section">
-            <h3 className="upload-form__section-title">📸 Media Evidence</h3>
+          {/* Right: Media upload + Gemini Analysis */}
+          <div className="upload-form__right-column">
+            <GlassCard delay={0.2} className="upload-form__section">
+              <h3 className="upload-form__section-title">📸 Media Evidence</h3>
 
-            {/* Drop zone */}
-            <div
-              className={`upload-dropzone ${dragActive ? 'upload-dropzone--active' : ''}`}
-              onDragOver={(e) => { e.preventDefault(); setDragActive(true) }}
-              onDragLeave={() => setDragActive(false)}
-              onDrop={handleDrop}
-              onClick={() => document.getElementById('file-input').click()}
-            >
-              <input id="file-input" type="file" accept="image/*" multiple onChange={handleFileSelect} style={{ display: 'none' }} />
-              <div className="upload-dropzone__icon">📤</div>
-              <p className="upload-dropzone__text">Drag & drop geo-tagged images here</p>
-              <p className="upload-dropzone__hint">or click to browse • Max 5 images</p>
-            </div>
-
-            {/* Preview */}
-            {form.images.length > 0 && (
-              <div className="upload-previews">
-                {form.images.map((file, i) => (
-                  <div key={i} className="upload-preview">
-                    <img src={URL.createObjectURL(file)} alt={file.name} />
-                    <button type="button" className="upload-preview__remove" onClick={() => removeImage(i)}>✕</button>
-                    <span className="upload-preview__name">{file.name}</span>
-                  </div>
-                ))}
+              {/* Drop zone */}
+              <div
+                className={`upload-dropzone ${dragActive ? 'upload-dropzone--active' : ''}`}
+                onDragOver={(e) => { e.preventDefault(); setDragActive(true) }}
+                onDragLeave={() => setDragActive(false)}
+                onDrop={handleDrop}
+                onClick={() => document.getElementById('file-input').click()}
+              >
+                <input id="file-input" type="file" accept="image/*" multiple onChange={handleFileSelect} style={{ display: 'none' }} />
+                <div className="upload-dropzone__icon">📤</div>
+                <p className="upload-dropzone__text">Drag & drop geo-tagged images here</p>
+                <p className="upload-dropzone__hint">or click to browse • Max 5 images</p>
               </div>
-            )}
 
-            {/* Video */}
-            <div className="form-group" style={{ marginTop: 'var(--space-lg)' }}>
-              <label htmlFor="upload-video">Video Evidence (Optional)</label>
-              <input id="upload-video" type="file" accept="video/*" onChange={handleVideoSelect} />
-              {form.video && <p className="upload-video-name">📹 {form.video.name}</p>}
-            </div>
-          </GlassCard>
+              {/* Preview */}
+              {form.images.length > 0 && (
+                <div className="upload-previews">
+                  {form.images.map((file, i) => (
+                    <div key={i} className="upload-preview">
+                      <img src={URL.createObjectURL(file)} alt={file.name} />
+                      <button type="button" className="upload-preview__remove" onClick={() => removeImage(i)}>✕</button>
+                      <span className="upload-preview__name">{file.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Video */}
+              <div className="form-group" style={{ marginTop: 'var(--space-lg)' }}>
+                <label htmlFor="upload-video">Video Evidence (Optional)</label>
+                <input id="upload-video" type="file" accept="video/*" onChange={handleVideoSelect} />
+                {form.video && <p className="upload-video-name">📹 {form.video.name}</p>}
+              </div>
+            </GlassCard>
+
+            {/* Gemini AI Analysis Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35 }}
+            >
+              <GeminiAnalysis
+                analysis={geminiResult}
+                loading={geminiLoading}
+                error={geminiError}
+              />
+            </motion.div>
+          </div>
         </div>
 
         {/* Submit */}

@@ -1,120 +1,265 @@
-BlueCarbonX
+# BlueCarbonX
 
-Carbon Asset Tokenization – Architecture Prototype
-Overview
+**AI + Blockchain MRV Platform for Blue Carbon Restoration**
+
+[![Google Gemini](https://img.shields.io/badge/AI-Google%20Gemini-4285F4?logo=google&logoColor=white)](https://ai.google.dev/)
+[![Firebase](https://img.shields.io/badge/Deploy-Firebase%20Hosting-FFCA28?logo=firebase&logoColor=black)](https://firebase.google.com/)
+[![React](https://img.shields.io/badge/Frontend-React%2018-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+
 ## Demo
 
 A short walkthrough of the system architecture and workflow:
 
 [![BlueCarbonX Demo](https://img.youtube.com/vi/JmnAMk7iiNQ/0.jpg)](https://youtu.be/JmnAMk7iiNQ)
 
-BlueCarbonX is a frontend system prototype that explores how carbon footprint documentation can be structured into a transparent, token-based digital workflow.
+---
 
-The project models an end-to-end lifecycle:
+## Overview
 
-1.Project submission
+BlueCarbonX is a full-stack prototype that models how carbon footprint documentation can be structured into a transparent, token-based digital workflow — now enhanced with **real AI-powered environmental analysis** using Google Gemini.
 
-2.Environmental impact analysis
+### Key Features
 
-3.Digital identity generation
+- 🌿 **AI Environmental Analysis** — Upload restoration images and get real-time vegetation assessment via Google Gemini
+- 🔗 **Carbon Asset Tokenization** — Full lifecycle from project submission to token issuance
+- 🛡️ **Multi-Signature Governance** — Admin panel with multi-sig approval workflow
+- 📊 **Trust Score & Fraud Detection** — AI-powered project risk assessment
+- 💼 **Carbon Credit Marketplace** — Industry buyers can purchase verified credits
+- 🔒 **Transparency Panel** — Full audit trail and project tracking
 
-4.Token issuance
+---
 
-5.Wallet-level tracking and transaction visibility
+## Architecture
 
-This repository focuses on system design, interaction flow, and state modeling.
-All blockchain, IPFS, and AI components are intentionally simulated to study workflow architecture rather than infrastructure deployment
+```
+bluecarbon-x/
+├── src/
+│   ├── ai/                  # Google Gemini integration logic
+│   │   └── geminiService.js # Image analysis via Gemini 1.5 Flash
+│   ├── config/              # Environment configuration
+│   │   └── env.js           # API key management
+│   ├── components/          # Reusable UI components
+│   │   └── shared/
+│   │       ├── GeminiAnalysis.jsx  # AI Analysis display
+│   │       ├── GlassCard.jsx
+│   │       ├── ParticleBackground.jsx
+│   │       └── ...
+│   ├── context/             # React Context (state management)
+│   │   └── AppContext.jsx
+│   ├── pages/               # Route pages
+│   │   ├── community/       # Community dashboard, upload, wallet
+│   │   ├── admin/           # Admin review, transparency, risk
+│   │   ├── industry/        # Industry marketplace, portfolio
+│   │   ├── analysis/        # AI analysis (Groq-powered)
+│   │   └── landing/         # Landing page
+│   ├── main.jsx
+│   └── App.jsx
+├── ai-agent/                # Python backend (FastAPI)
+│   ├── api.py               # REST API with Gemini + Groq endpoints
+│   ├── agent.py             # CLI agent
+│   └── requirements.txt
+├── firebase.json            # Firebase Hosting config
+├── .firebaserc              # Firebase project alias
+├── .env.example             # Environment variables template
+└── package.json
+```
 
+---
 
-Problem Context
+## Quick Start (Local Development)
 
-Environmental impact reporting often suffers from:
+### Prerequisites
 
-1.Fragmented documentation
+- Node.js 18+
+- npm 9+
+- A Google Gemini API key ([Get one here](https://aistudio.google.com/app/apikey))
 
-2.Limited traceability
+### 1. Clone & Install
 
-3.Manual verification processes
+```bash
+git clone https://github.com/your-repo/bluecarbon-x.git
+cd bluecarbon-x
+npm install
+```
 
-4.Lack of transparent asset tracking
+### 2. Configure API Key
 
-This prototype explores how a structured digital pipeline combined with token-style representation could improve clarity and accountability in carbon reporting systems.
+```bash
+# Copy the example env file
+cp .env.example .env
 
-The emphasis is on modeling the process, not deploying a production blockchain solution.
+# Edit .env and add your Gemini API key
+# VITE_GEMINI_API_KEY=your_actual_key_here
+```
 
-System Flow
+### 3. Run Development Server
 
-1. Project Submission
-Users upload carbon footprint documentation and provide structured metadata.
+```bash
+npm run dev
+```
 
-2. Analysis Layer (Simulated)
-A rule-based evaluation layer processes input data and generates an environmental impact summary.
+The app will open at `http://localhost:3000`.
 
-3. Digital Identity Generation
-Each project is assigned:
+### 4. Test Gemini Integration
 
-->A simulated content identifier
+1. Click **"Community"** role on the landing page
+2. Navigate to **"Upload Proof"**
+3. Upload any image (vegetation/nature photo works best)
+4. The **"AI Environmental Analysis"** section will show real-time Gemini results
 
-->Structured asset metadata
+---
 
-->A unique internal ledger reference
+## Backend (Optional)
 
-4. Token Issuance
-Carbon Footprint Tokens (CFT) are issued within a simulated ledger state.
+The Python backend provides additional AI agents (Carbon Analyst + Fraud Detector).
 
-5. Community Wallet
-Users can:
+```bash
+cd ai-agent
 
-->View token balances
+# Create virtual environment
+python -m venv venv
+venv\Scripts\activate       # Windows
+# source venv/bin/activate  # Mac/Linux
 
-->Track transaction history
+# Install dependencies
+pip install -r requirements.txt
 
-->Inspect project-level records
+# Copy env and set API keys
+cp .env.example .env
+# Edit .env with your GROQ_API_KEY and GOOGLE_GEMINI_API_KEY
 
-6. Dashboard
-Provides aggregate project metrics and system-level analytics.
-Technical Stack
+# Run backend
+python api.py
+```
 
-->React 18
+Backend runs at `http://localhost:8000` with interactive docs at `/docs`.
 
-->Vite
+---
 
-->React Router
+## Cloud Deployment (Firebase Hosting)
 
-->React Context API
+### Prerequisites
 
-->Browser LocalStorage
+- [Firebase CLI](https://firebase.google.com/docs/cli) installed
+- A Firebase project created at [console.firebase.google.com](https://console.firebase.google.com/)
 
-State is managed centrally using Context to simulate ledger-style data propagation across components.
-Persistence is handled locally to preserve project and transaction state between sessions.
+### Step 1: Install Firebase CLI
 
-Architectural Notes
+```bash
+npm install -g firebase-tools
+```
 
-->Modular component structure for clear separation of concerns
+### Step 2: Login to Firebase
 
-->Routing aligned with production-style application flow
+```bash
+firebase login
+```
 
-->Context-based state container simulating a simplified ledger model
+### Step 3: Create a Firebase Project
 
-->Designed for easy extension into smart contract or backend integration
+Go to [Firebase Console](https://console.firebase.google.com/) → **Add Project** → Name it (e.g., `bluecarbon-x`).
 
-This prototype emphasizes interaction modeling and system clarity over external integrations.
+### Step 4: Update Project ID
 
-Future Scope
+Edit `.firebaserc` and replace the project ID:
 
-->Integration with EVM-compatible smart contracts
+```json
+{
+  "projects": {
+    "default": "your-firebase-project-id"
+  }
+}
+```
 
-->IPFS-based document hashing
+### Step 5: Set API Key for Production
 
-->Machine learning–based carbon scoring
+Before building, set your Gemini API key in `.env`:
 
-->Multi-role verification model
+```bash
+VITE_GEMINI_API_KEY=your_actual_gemini_api_key
+```
 
-->Governance and audit layer
+> **Note**: Since the Gemini call runs client-side, the API key is embedded in the build.
+> For production, restrict the key in [Google Cloud Console](https://console.cloud.google.com/apis/credentials) to your Firebase domain.
 
-Purpose
+### Step 6: Build & Deploy
 
-This project is an exploration of how environmental accountability systems can be modeled using structured digital workflows and token-based representation.
+```bash
+# One command does it all:
+npm run deploy
 
-It is intended as a proof-of-concept for further research and backend expansion.
+# Or manually:
+npm run build
+firebase deploy --only hosting
+```
 
+### Step 7: Access Your Live Site
+
+After deployment, Firebase will show your live URL:
+```
+✔  Deploy complete!
+Hosting URL: https://your-project-id.web.app
+```
+
+---
+
+## API Key Security
+
+| Key | Usage | Location |
+|-----|-------|----------|
+| `VITE_GEMINI_API_KEY` | Frontend image analysis | `.env` (root) |
+| `GROQ_API_KEY` | Backend carbon analysis | `ai-agent/.env` |
+| `GOOGLE_GEMINI_API_KEY` | Backend image endpoint | `ai-agent/.env` |
+
+### Production Security
+
+For the frontend Gemini key:
+1. Go to [Google Cloud Console → Credentials](https://console.cloud.google.com/apis/credentials)
+2. Click on your API key
+3. Under **Application restrictions**, select **HTTP referrers**
+4. Add your Firebase domain: `your-project-id.web.app/*`
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 18, Vite, Framer Motion |
+| AI (Image) | Google Gemini 1.5 Flash |
+| AI (Text) | Groq (Llama 3.3 70B) |
+| Backend | FastAPI, Python |
+| State | React Context + LocalStorage |
+| Deployment | Firebase Hosting |
+| Design | Custom CSS, Glassmorphism |
+
+---
+
+## Google AI Services Used
+
+### Google Gemini 1.5 Flash (Primary)
+
+- **Purpose**: Real-time environmental image analysis
+- **Integration**: `@google/generative-ai` SDK (frontend) + `google-generativeai` Python SDK (backend)
+- **Functionality**:
+  - Vegetation presence detection (low/medium/high)
+  - Environmental insight generation
+  - Confidence reasoning
+  - Verification status determination
+
+---
+
+## Future Scope
+
+- Integration with EVM-compatible smart contracts
+- IPFS-based document hashing
+- Machine learning–based carbon scoring
+- Multi-role verification model
+- Governance and audit layer
+- Google Cloud Run deployment for backend
+
+---
+
+## License
+
+This project is a prototype for research and hackathon purposes.
