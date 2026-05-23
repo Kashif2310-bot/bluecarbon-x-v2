@@ -262,4 +262,4 @@ For the frontend Gemini key:
 
 ## License
 
-This project is a prototype for research and hackathon purposes.
+This project is a prototype for research purposes.
