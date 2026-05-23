@@ -27,6 +27,9 @@ import IndustryDashboard from './pages/industry/IndustryDashboard'
 import BrowseMarketplace from './pages/industry/BrowseMarketplace'
 import Portfolio from './pages/industry/Portfolio'
 
+// AI Analysis
+import Analysis from './pages/analysis/Analysis'
+
 import './App.css'
 
 function AppRoutes() {
@@ -65,6 +68,9 @@ function AppRoutes() {
             <Route path="marketplace" element={<BrowseMarketplace />} />
             <Route path="portfolio" element={<Portfolio />} />
           </Route>
+
+          {/* AI Analysis (standalone) */}
+          <Route path="/analysis" element={<Analysis />} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />

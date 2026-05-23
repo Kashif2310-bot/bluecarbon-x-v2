@@ -14,6 +14,7 @@ const ROLE_NAV = {
       { path: '/community/submissions', icon: '📋', label: 'My Submissions' },
       { path: '/community/wallet', icon: '💼', label: 'Wallet' },
       { path: '/community/marketplace', icon: '🏪', label: 'Marketplace' },
+      { path: '/analysis', icon: '🤖', label: 'AI Analysis' },
     ],
   },
   admin: {
@@ -25,6 +26,7 @@ const ROLE_NAV = {
       { path: '/admin/review', icon: '📝', label: 'Review Queue' },
       { path: '/admin/transparency', icon: '🔍', label: 'Transparency' },
       { path: '/admin/risk', icon: '⚠️', label: 'Risk Control' },
+      { path: '/analysis', icon: '🤖', label: 'AI Analysis' },
     ],
   },
   industry: {
@@ -35,6 +37,7 @@ const ROLE_NAV = {
       { path: '/industry', icon: '📊', label: 'Dashboard', end: true },
       { path: '/industry/marketplace', icon: '🏪', label: 'Marketplace' },
       { path: '/industry/portfolio', icon: '💎', label: 'Portfolio' },
+      { path: '/analysis', icon: '🤖', label: 'AI Analysis' },
     ],
   },
 }
